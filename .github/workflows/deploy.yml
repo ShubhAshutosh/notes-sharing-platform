@@ -1,0 +1,32 @@
+name: Deploy React App
+
+on:
+  push:
+    branches:
+      - main  # Trigger the workflow on pushes to the 'main' branch
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest  # Specifies the operating system for the runner
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2  # Checks out your repository
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'  # Specifies the Node.js version
+
+    - name: Install dependencies
+      run: npm install  # Installs dependencies defined in package.json
+
+    - name: Build
+      run: npm run build  # Runs the build script defined in package.json
+
+    - name: Deploy to Firebase
+      uses: wzieba/Firebase-Action@v2
+      with:
+        args: deploy --only hosting  # Deploys only the hosting part of Firebase
+      env:
+        FIREBASE_AUTH_TOKEN: ${{ secrets.FIREBASE_AUTH_TOKEN }}  # Uses the Firebase Auth token from GitHub secrets
