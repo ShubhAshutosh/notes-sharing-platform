@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { getFirestore, collection, getDocs, addDoc } from 'firebase/firestore';
 import { storage } from './firebase'; // Import storage
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage'; // Import uploadBytesResumable
@@ -15,7 +15,8 @@ function Home() {
   const [uploadError, setUploadError] = useState('');
   const db = getFirestore();
 
-  const fetchNotes = async () => {
+  // Memoize fetchNotes function
+  const fetchNotes = useCallback(async () => {
     try {
       const notesCollection = collection(db, 'notes');
       const noteSnapshot = await getDocs(notesCollection);
@@ -25,11 +26,12 @@ function Home() {
     } catch (error) {
       console.error("Error fetching notes:", error);
     }
-  };
+  }, [db]); // Include db as a dependency if it changes
 
   useEffect(() => {
     fetchNotes();
-  }, []);
+  }, [fetchNotes]); // Include fetchNotes in the dependency array
+
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
   };
