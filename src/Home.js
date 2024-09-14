@@ -3,7 +3,8 @@ import { getFirestore, collection, getDocs, addDoc } from 'firebase/firestore';
 import { storage } from './firebase';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { Container, Row, Col, Form, Button, ListGroup, Alert, ProgressBar } from 'react-bootstrap';
-import { Link } from 'react-router-dom'; // Import Link for navigation
+import { Link } from 'react-router-dom';
+import { useSpring, animated } from 'react-spring'; // Import react-spring for animations
 
 function Home() {
   const [notes, setNotes] = useState([]);
@@ -15,6 +16,7 @@ function Home() {
   const [uploadMessage, setUploadMessage] = useState('');
   const [uploadError, setUploadError] = useState('');
   const [filteredNotes, setFilteredNotes] = useState([]);
+  const [searchTriggered, setSearchTriggered] = useState(false); // State to trigger animation
 
   const db = getFirestore();
 
@@ -86,7 +88,22 @@ function Home() {
       note.description.toLowerCase().includes(search.toLowerCase())
     );
     setFilteredNotes(filtered);
+    setSearchTriggered(true); // Trigger animation
   };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault(); // Prevent form submission or page reload
+      handleSearch(); // Trigger search on Enter key press
+    }
+  };
+
+  // Animation for search results
+  const searchAnimation = useSpring({
+    transform: searchTriggered ? 'translateY(0px)' : 'translateY(20px)',
+    opacity: searchTriggered ? 1 : 0,
+    config: { tension: 250, friction: 20 },
+  });
 
   return (
     <Container className="my-4 p-4" style={{ background: 'linear-gradient(to right, #ff7e5f, #feb47b)', borderRadius: '10px' }}>
@@ -101,6 +118,7 @@ function Home() {
                 placeholder="Search notes..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onKeyPress={handleKeyPress} // Call handleKeyPress on key press
                 className="search-bar rounded-pill py-2 px-3 border-0"
                 style={{ backgroundColor: '#ffffffb3', color: '#333' }}
               />
@@ -150,16 +168,18 @@ function Home() {
             {uploadError && <Alert variant="danger" className="mt-2">{uploadError}</Alert>}
           </div>
           
-          {/* Display a limited number of notes on the front page */}
-          <ListGroup>
-            {filteredNotes.slice(0, 5).map((note, index) => (
-              <ListGroup.Item key={index} className="border-0 bg-light mb-2 rounded">
-                <a href={note.url} target="_blank" rel="noopener noreferrer" className="font-weight-bold">{note.name}</a>
-                <p>{note.description}</p>
-                <small className="text-muted">Uploaded by: {note.uploader}</small>
-              </ListGroup.Item>
-            ))}
-          </ListGroup>
+          {/* Display a limited number of notes on the front page with animation */}
+          <animated.div style={searchAnimation}>
+            <ListGroup>
+              {filteredNotes.slice(0, 5).map((note, index) => (
+                <ListGroup.Item key={index} className="border-0 bg-light mb-2 rounded">
+                  <a href={note.url} target="_blank" rel="noopener noreferrer" className="font-weight-bold">{note.name}</a>
+                  <p>{note.description}</p>
+                  <small className="text-muted">Uploaded by: {note.uploader}</small>
+                </ListGroup.Item>
+              ))}
+            </ListGroup>
+          </animated.div>
         </Col>
       </Row>
     </Container>
