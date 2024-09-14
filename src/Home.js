@@ -2,22 +2,22 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { getFirestore, collection, getDocs, addDoc } from 'firebase/firestore';
 import { storage } from './firebase';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import './Home.css';
+import { Container, Row, Col, Form, Button, ListGroup, Alert, ProgressBar } from 'react-bootstrap';
+import { Link } from 'react-router-dom'; // Import Link for navigation
 
 function Home() {
   const [notes, setNotes] = useState([]);
-  const [search, setSearch] = useState('');  // For storing search query
+  const [search, setSearch] = useState('');
   const [file, setFile] = useState(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadMessage, setUploadMessage] = useState('');
   const [uploadError, setUploadError] = useState('');
-  const [filteredNotes, setFilteredNotes] = useState([]);  // For storing filtered notes
+  const [filteredNotes, setFilteredNotes] = useState([]);
 
   const db = getFirestore();
 
-  // Memoize fetchNotes function
   const fetchNotes = useCallback(async () => {
     try {
       const notesCollection = collection(db, 'notes');
@@ -25,7 +25,7 @@ function Home() {
       const notesList = noteSnapshot.docs.map(doc => doc.data());
       console.log("Fetched notes:", notesList);
       setNotes(notesList);
-      setFilteredNotes(notesList);  // Set initially to all notes
+      setFilteredNotes(notesList);
     } catch (error) {
       console.error("Error fetching notes:", error);
     }
@@ -62,7 +62,7 @@ function Home() {
             name,
             description,
             url: fileURL,
-            uploader: 'Anonymous', // Replace with actual uploader info
+            uploader: 'Anonymous',
           });
           setFile(null);
           setName('');
@@ -70,7 +70,7 @@ function Home() {
           setUploadProgress(0);
           setUploadMessage('Note uploaded successfully!');
           setUploadError('');
-          fetchNotes();  // Refresh notes list
+          fetchNotes();
         } catch (error) {
           console.error("Error saving note:", error);
           setUploadError('Upload failed.');
@@ -80,69 +80,89 @@ function Home() {
     );
   };
 
-  // Handle search functionality when search button is clicked
   const handleSearch = () => {
     const filtered = notes.filter(note =>
       note.name.toLowerCase().includes(search.toLowerCase()) ||
       note.description.toLowerCase().includes(search.toLowerCase())
     );
-    setFilteredNotes(filtered);  // Update filtered notes
+    setFilteredNotes(filtered);
   };
 
   return (
-    <div className="home-container">
-      <h2>Available Notes</h2>
-      
-      <input
-        type="text"
-        placeholder="Search notes..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
-      <button onClick={handleSearch}>Search</button>  {/* Added search button */}
-      
-      <div>
-        <h3>Upload a Note</h3>
-        <input
-          type="text"
-          placeholder="Note Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <input
-          type="text"
-          placeholder="Note Description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-        <input
-          type="file"
-          onChange={handleFileChange}
-        />
-        <button onClick={handleUpload}>Upload</button>
-        {uploadProgress > 0 && (
-          <div className="progress-bar">
-            <div className="progress" style={{ width: `${uploadProgress}%` }}>
-              {Math.round(uploadProgress)}%
-            </div>
+    <Container className="my-4 p-4" style={{ background: 'linear-gradient(to right, #ff7e5f, #feb47b)', borderRadius: '10px' }}>
+      <Row>
+        <Col md={6} className="mx-auto">
+          <h2 className="mb-4 text-white">Available Notes</h2>
+          
+          <Form className="mb-4">
+            <Form.Group controlId="searchQuery">
+              <Form.Control
+                type="text"
+                placeholder="Search notes..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="search-bar rounded-pill py-2 px-3 border-0"
+                style={{ backgroundColor: '#ffffffb3', color: '#333' }}
+              />
+            </Form.Group>
+            <Button variant="outline-light" onClick={handleSearch} className="mt-2 rounded-pill px-4 py-2">Search</Button>
+            <Link to="/all-notes">
+              <Button variant="outline-light" className="mt-2 rounded-pill px-4 py-2">Show All Notes</Button>
+            </Link>
+          </Form>
+          
+          <div className="mb-4">
+            <h3 className="text-white">Upload a Note</h3>
+            <Form>
+              <Form.Group controlId="noteName">
+                <Form.Control
+                  type="text"
+                  placeholder="Note Name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="rounded-pill py-2 px-3 mb-2 border-0"
+                  style={{ backgroundColor: '#ffffffb3', color: '#333' }}
+                />
+              </Form.Group>
+              <Form.Group controlId="noteDescription" className="mt-2">
+                <Form.Control
+                  type="text"
+                  placeholder="Note Description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="rounded-pill py-2 px-3 mb-2 border-0"
+                  style={{ backgroundColor: '#ffffffb3', color: '#333' }}
+                />
+              </Form.Group>
+              <Form.Group controlId="fileUpload" className="mt-2">
+                <Form.Control
+                  type="file"
+                  onChange={handleFileChange}
+                  className="rounded-pill border-0"
+                />
+              </Form.Group>
+              <Button variant="light" onClick={handleUpload} className="mt-2 rounded-pill px-4 py-2">Upload</Button>
+            </Form>
+            {uploadProgress > 0 && (
+              <ProgressBar now={uploadProgress} label={`${Math.round(uploadProgress)}%`} className="mt-2" />
+            )}
+            {uploadMessage && <Alert variant="success" className="mt-2">{uploadMessage}</Alert>}
+            {uploadError && <Alert variant="danger" className="mt-2">{uploadError}</Alert>}
           </div>
-        )}
-        {uploadMessage && <p className="upload-message">{uploadMessage}</p>}
-        {uploadError && <p className="upload-error">{uploadError}</p>}
-      </div>
-      
-      <ul>
-        {filteredNotes.map((note, index) => (
-          <li key={index}>
-            <a href={note.url} target="_blank" rel="noopener noreferrer">
-              {note.name}
-            </a>
-            <p>{note.description}</p>
-            <small>Uploaded by: {note.uploader}</small>
-          </li>
-        ))}
-      </ul>
-    </div>
+          
+          {/* Display a limited number of notes on the front page */}
+          <ListGroup>
+            {filteredNotes.slice(0, 5).map((note, index) => (
+              <ListGroup.Item key={index} className="border-0 bg-light mb-2 rounded">
+                <a href={note.url} target="_blank" rel="noopener noreferrer" className="font-weight-bold">{note.name}</a>
+                <p>{note.description}</p>
+                <small className="text-muted">Uploaded by: {note.uploader}</small>
+              </ListGroup.Item>
+            ))}
+          </ListGroup>
+        </Col>
+      </Row>
+    </Container>
   );
 }
 
