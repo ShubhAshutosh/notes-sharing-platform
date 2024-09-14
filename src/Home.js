@@ -1,18 +1,20 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { getFirestore, collection, getDocs, addDoc } from 'firebase/firestore';
-import { storage } from './firebase'; // Import storage
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage'; // Import uploadBytesResumable
+import { storage } from './firebase';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import './Home.css';
 
 function Home() {
   const [notes, setNotes] = useState([]);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState('');  // For storing search query
   const [file, setFile] = useState(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadMessage, setUploadMessage] = useState('');
   const [uploadError, setUploadError] = useState('');
+  const [filteredNotes, setFilteredNotes] = useState([]);  // For storing filtered notes
+
   const db = getFirestore();
 
   // Memoize fetchNotes function
@@ -21,16 +23,17 @@ function Home() {
       const notesCollection = collection(db, 'notes');
       const noteSnapshot = await getDocs(notesCollection);
       const notesList = noteSnapshot.docs.map(doc => doc.data());
-      console.log("Fetched notes:", notesList); // Debug: Check fetched notes
+      console.log("Fetched notes:", notesList);
       setNotes(notesList);
+      setFilteredNotes(notesList);  // Set initially to all notes
     } catch (error) {
       console.error("Error fetching notes:", error);
     }
-  }, [db]); // Include db as a dependency if it changes
+  }, [db]);
 
   useEffect(() => {
     fetchNotes();
-  }, [fetchNotes]); // Include fetchNotes in the dependency array
+  }, [fetchNotes]);
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
@@ -67,7 +70,7 @@ function Home() {
           setUploadProgress(0);
           setUploadMessage('Note uploaded successfully!');
           setUploadError('');
-          fetchNotes(); // Refresh notes list
+          fetchNotes();  // Refresh notes list
         } catch (error) {
           console.error("Error saving note:", error);
           setUploadError('Upload failed.');
@@ -77,20 +80,27 @@ function Home() {
     );
   };
 
-  const filteredNotes = notes.filter(note =>
-    note.name.toLowerCase().includes(search.toLowerCase()) ||
-    note.description.toLowerCase().includes(search.toLowerCase())
-  );
+  // Handle search functionality when search button is clicked
+  const handleSearch = () => {
+    const filtered = notes.filter(note =>
+      note.name.toLowerCase().includes(search.toLowerCase()) ||
+      note.description.toLowerCase().includes(search.toLowerCase())
+    );
+    setFilteredNotes(filtered);  // Update filtered notes
+  };
 
   return (
     <div className="home-container">
       <h2>Available Notes</h2>
+      
       <input
         type="text"
         placeholder="Search notes..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
+      <button onClick={handleSearch}>Search</button>  {/* Added search button */}
+      
       <div>
         <h3>Upload a Note</h3>
         <input
@@ -120,6 +130,7 @@ function Home() {
         {uploadMessage && <p className="upload-message">{uploadMessage}</p>}
         {uploadError && <p className="upload-error">{uploadError}</p>}
       </div>
+      
       <ul>
         {filteredNotes.map((note, index) => (
           <li key={index}>
